@@ -15,6 +15,7 @@ import { Database } from './db/Database.js';
 import { MigrationRunner } from './db/migrations/runner.js';
 import { initialSchema } from './db/migrations/001-initial-schema.js';
 import { taskTags } from './db/migrations/004-task-tags.js';
+import { taskComments } from './db/migrations/005-task-comments.js';
 import { PlanRepository } from './db/repositories/PlanRepository.js';
 import { TaskRepository } from './db/repositories/TaskRepository.js';
 import { TaskService } from './services/TaskService.js';
@@ -26,7 +27,9 @@ import { registerDependencyTools } from './tools/dependency.tools.js';
 import { registerSearchTools } from './tools/search.tools.js';
 import { registerTagTools } from './tools/tag.tools.js';
 import { registerBulkTools } from './tools/bulk.tools.js';
+import { registerCommentTools } from './tools/comment.tools.js';
 import { DependencyRepository } from './db/repositories/DependencyRepository.js';
+import { CommentRepository } from './db/repositories/CommentRepository.js';
 import { ToolRegistry, ToolDefinition, ToolHandler } from './tools/types.js';
 import { getResourceDefinitions, registerResources, ResourceRegistry } from './resources/index.js';
 import { ResourceHandler } from './resources/types.js';
@@ -54,6 +57,7 @@ export class PlanningServer {
   private planRepo: PlanRepository;
   private taskRepo: TaskRepository;
   private dependencyRepo: DependencyRepository;
+  private commentRepo: CommentRepository;
   private taskService: TaskService;
   private tools: Map<string, { definition: ToolDefinition; handler: ToolHandler }>;
   private resources: Map<RegExp, ResourceHandler>;
@@ -70,11 +74,13 @@ export class PlanningServer {
     runner.initialize();
     runner.runMigration(initialSchema);
     runner.runMigration(taskTags);
+    runner.runMigration(taskComments);
 
     // Initialize repositories and services
     this.planRepo = new PlanRepository(this.db);
     this.taskRepo = new TaskRepository(this.db);
     this.dependencyRepo = new DependencyRepository(this.db);
+    this.commentRepo = new CommentRepository(this.db);
     this.taskService = new TaskService(this.taskRepo);
 
     // Initialize registries
@@ -134,6 +140,7 @@ export class PlanningServer {
     registerSearchTools(registry, this.db);
     registerTagTools(registry, this.taskRepo);
     registerBulkTools(registry, this.taskRepo);
+    registerCommentTools(registry, this.commentRepo, this.taskRepo);
   }
 
   private registerResources(): void {
