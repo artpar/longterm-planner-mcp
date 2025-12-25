@@ -265,7 +265,6 @@ export class PlanningServer {
   async start(): Promise<void> {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.error('longterm-planner-mcp server started');
   }
 
   /**

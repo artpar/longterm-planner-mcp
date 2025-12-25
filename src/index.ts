@@ -37,13 +37,11 @@ async function main() {
 
   // Handle shutdown
   process.on('SIGINT', () => {
-    console.error('Shutting down...');
     server.close();
     process.exit(0);
   });
 
   process.on('SIGTERM', () => {
-    console.error('Shutting down...');
     server.close();
     process.exit(0);
   });

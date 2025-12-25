@@ -58,20 +58,20 @@ describe('MCP Server Integration', () => {
       stdio: ['pipe', 'pipe', 'pipe']
     });
 
-    // Wait for server to start
+    // Wait for server to be ready (give it time to initialize)
     await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('Server start timeout')), 5000);
-
-      serverProcess.stderr?.on('data', (data) => {
-        if (data.toString().includes('server started')) {
-          clearTimeout(timeout);
-          resolve();
-        }
-      });
+      const timeout = setTimeout(() => resolve(), 500); // Server ready after 500ms
 
       serverProcess.on('error', (err) => {
         clearTimeout(timeout);
         reject(err);
+      });
+
+      serverProcess.on('exit', (code) => {
+        if (code !== null && code !== 0) {
+          clearTimeout(timeout);
+          reject(new Error(`Server exited with code ${code}`));
+        }
       });
     });
   });
