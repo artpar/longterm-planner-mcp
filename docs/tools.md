@@ -240,6 +240,7 @@ Search tasks with text and filters.
 - `status` - Filter by status(es)
 - `priority` - Filter by priority(ies)
 - `assignee` - Filter by assignee
+- `tags` - Filter by tags (tasks must have ALL specified tags)
 - `dueBefore` - Tasks due before date
 - `dueAfter` - Tasks due after date
 - `includeCompleted` - Include completed tasks (default: false)
@@ -297,3 +298,141 @@ Import a plan from JSON export.
 - `data` (required) - JSON string of exported plan
 - `projectPath` - Project path for imported plan
 - `newName` - New name for imported plan
+
+---
+
+## Tags
+
+### add_tag
+
+Add a tag to a task for categorization.
+
+**Parameters:**
+- `taskId` (required) - Task ID
+- `tag` (required) - Tag to add (normalized to lowercase)
+
+### remove_tag
+
+Remove a tag from a task.
+
+**Parameters:**
+- `taskId` (required) - Task ID
+- `tag` (required) - Tag to remove
+
+### set_tags
+
+Set all tags for a task (replaces existing).
+
+**Parameters:**
+- `taskId` (required) - Task ID
+- `tags` (required) - Array of tags to set
+
+### get_tags
+
+Get all unique tags used in a plan.
+
+**Parameters:**
+- `planId` (required) - Plan ID
+
+### find_by_tag
+
+Find all tasks with a specific tag.
+
+**Parameters:**
+- `planId` (required) - Plan ID
+- `tag` (required) - Tag to search for
+
+---
+
+## Bulk Operations
+
+### bulk_update_status
+
+Update status for multiple tasks at once.
+
+**Parameters:**
+- `taskIds` (required) - Array of task IDs
+- `status` (required) - New status for all tasks
+
+### bulk_update_priority
+
+Update priority for multiple tasks at once.
+
+**Parameters:**
+- `taskIds` (required) - Array of task IDs
+- `priority` (required) - New priority for all tasks
+
+### bulk_set_assignee
+
+Set assignee for multiple tasks at once.
+
+**Parameters:**
+- `taskIds` (required) - Array of task IDs
+- `assignee` - Assignee name (omit to unassign)
+
+### bulk_add_tag
+
+Add a tag to multiple tasks at once.
+
+**Parameters:**
+- `taskIds` (required) - Array of task IDs
+- `tag` (required) - Tag to add
+
+### bulk_remove_tag
+
+Remove a tag from multiple tasks at once.
+
+**Parameters:**
+- `taskIds` (required) - Array of task IDs
+- `tag` (required) - Tag to remove
+
+### bulk_delete
+
+Delete multiple tasks at once.
+
+**Parameters:**
+- `taskIds` (required) - Array of task IDs
+
+---
+
+## Comments
+
+### add_comment
+
+Add a comment or note to a task.
+
+**Parameters:**
+- `taskId` (required) - Task ID
+- `content` (required) - Comment content
+- `author` - Author name (optional)
+
+### list_comments
+
+List all comments for a task.
+
+**Parameters:**
+- `taskId` (required) - Task ID
+- `order` - Order by creation time: asc or desc (default: asc)
+
+### update_comment
+
+Update an existing comment.
+
+**Parameters:**
+- `commentId` (required) - Comment ID
+- `content` (required) - New content
+
+### delete_comment
+
+Delete a comment.
+
+**Parameters:**
+- `commentId` (required) - Comment ID
+
+### get_recent_comments
+
+Get recent comments across all tasks in a plan.
+
+**Parameters:**
+- `planId` (required) - Plan ID
+- `limit` - Max comments to return (default: 10)

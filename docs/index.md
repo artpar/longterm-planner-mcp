@@ -30,7 +30,10 @@ This MCP server provides all that and more, integrated directly into Claude Code
 | **Persistent Storage** | SQLite database survives across sessions |
 | **Task Dependencies** | Define blocking relationships between tasks |
 | **Plan Templates** | 10 built-in templates for common project types |
-| **Search & Filter** | Find tasks by text, status, priority, dates |
+| **Search & Filter** | Find tasks by text, status, priority, dates, tags |
+| **Task Tags** | Categorize tasks with custom labels |
+| **Task Comments** | Add timestamped notes to tasks |
+| **Bulk Operations** | Update multiple tasks at once |
 | **State Machine** | Enforced task status transitions |
 | **Export/Import** | JSON and Markdown export support |
 

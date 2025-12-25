@@ -12,7 +12,10 @@ A Model Context Protocol (MCP) server for long-term planning management in Claud
 - **State Machine** - Enforced status transitions prevent invalid task states
 - **Task Dependencies** - Define blocking relationships with circular dependency detection
 - **Plan Templates** - 10 built-in templates for common project types (web apps, APIs, etc.)
-- **Search & Filter** - Find tasks across plans by text, status, priority, dates, assignee
+- **Search & Filter** - Find tasks across plans by text, status, priority, dates, tags, assignee
+- **Task Tags** - Categorize tasks with custom labels for organization
+- **Task Comments** - Add timestamped notes and updates to tasks
+- **Bulk Operations** - Update status, priority, tags, or delete multiple tasks at once
 - **Progress Tracking** - Track estimated vs actual hours, completion stats
 - **Git Integration** - Link commits to tasks via branch names or commit messages
 - **Export/Import** - Export plans to JSON or Markdown, import from JSON
@@ -150,6 +153,37 @@ Built-in templates: `web-app`, `rest-api`, `cli-tool`, `library`, `bug-fix`, `fe
 | `export_plan` | Export plan to JSON or Markdown |
 | `import_plan` | Import plan from JSON |
 
+### Tags
+
+| Tool | Description |
+|------|-------------|
+| `add_tag` | Add a tag to a task |
+| `remove_tag` | Remove a tag from a task |
+| `set_tags` | Set all tags for a task |
+| `get_tags` | Get all unique tags in a plan |
+| `find_by_tag` | Find tasks by tag |
+
+### Bulk Operations
+
+| Tool | Description |
+|------|-------------|
+| `bulk_update_status` | Update status for multiple tasks |
+| `bulk_update_priority` | Update priority for multiple tasks |
+| `bulk_set_assignee` | Set assignee for multiple tasks |
+| `bulk_add_tag` | Add tag to multiple tasks |
+| `bulk_remove_tag` | Remove tag from multiple tasks |
+| `bulk_delete` | Delete multiple tasks |
+
+### Comments
+
+| Tool | Description |
+|------|-------------|
+| `add_comment` | Add a comment to a task |
+| `list_comments` | List comments for a task |
+| `update_comment` | Update a comment |
+| `delete_comment` | Delete a comment |
+| `get_recent_comments` | Get recent comments in a plan |
+
 ## Resources
 
 Access plan data via MCP resources:
@@ -185,7 +219,8 @@ Plans are stored in SQLite at `~/.claude/planning/plans.db`.
 ### Schema
 
 - **plans** - Project plans with status, dates, context
-- **tasks** - Tasks with status, priority, estimates, assignments
+- **tasks** - Tasks with status, priority, estimates, tags, assignments
+- **task_comments** - Timestamped comments on tasks
 - **goals** - High-level goals (hierarchical)
 - **objectives** - Measurable objectives under goals
 - **milestones** - Time-bound checkpoints
