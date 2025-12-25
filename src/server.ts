@@ -21,6 +21,8 @@ import { registerPlanTools } from './tools/plan.tools.js';
 import { registerTaskTools } from './tools/task.tools.js';
 import { registerExportTools } from './tools/export.tools.js';
 import { registerTemplateTools } from './tools/template.tools.js';
+import { registerDependencyTools } from './tools/dependency.tools.js';
+import { DependencyRepository } from './db/repositories/DependencyRepository.js';
 import { ToolRegistry, ToolDefinition, ToolHandler } from './tools/types.js';
 import { getResourceDefinitions, registerResources, ResourceRegistry } from './resources/index.js';
 import { ResourceHandler } from './resources/types.js';
@@ -47,6 +49,7 @@ export class PlanningServer {
   private db: Database;
   private planRepo: PlanRepository;
   private taskRepo: TaskRepository;
+  private dependencyRepo: DependencyRepository;
   private taskService: TaskService;
   private tools: Map<string, { definition: ToolDefinition; handler: ToolHandler }>;
   private resources: Map<RegExp, ResourceHandler>;
@@ -66,6 +69,7 @@ export class PlanningServer {
     // Initialize repositories and services
     this.planRepo = new PlanRepository(this.db);
     this.taskRepo = new TaskRepository(this.db);
+    this.dependencyRepo = new DependencyRepository(this.db);
     this.taskService = new TaskService(this.taskRepo);
 
     // Initialize registries
@@ -121,6 +125,7 @@ export class PlanningServer {
     registerTaskTools(registry, this.taskService);
     registerExportTools(registry, this.planRepo, this.taskService);
     registerTemplateTools(registry, this.planRepo, this.taskService);
+    registerDependencyTools(registry, this.dependencyRepo, this.taskRepo);
   }
 
   private registerResources(): void {

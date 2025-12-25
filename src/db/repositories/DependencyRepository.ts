@@ -219,6 +219,8 @@ export class DependencyRepository extends BaseRepository<Dependency> {
 
   /**
    * Check if adding a dependency would create a cycle
+   * Adding "source blocks target" means "target depends on source"
+   * A cycle occurs if source already (transitively) depends on target
    */
   wouldCreateCycle(
     sourceType: EntityType,
@@ -226,9 +228,14 @@ export class DependencyRepository extends BaseRepository<Dependency> {
     targetType: EntityType,
     targetId: string
   ): boolean {
-    // If target already depends on source (directly or transitively), adding this would create a cycle
+    // Self-dependency check
+    if (sourceType === targetType && sourceId === targetId) {
+      return true;
+    }
+
+    // Check if source already depends on target (which would create a cycle)
     const visited = new Set<string>();
-    const queue: Array<{ type: EntityType; id: string }> = [{ type: targetType, id: targetId }];
+    const queue: Array<{ type: EntityType; id: string }> = [{ type: sourceType, id: sourceId }];
 
     while (queue.length > 0) {
       const current = queue.shift()!;
@@ -237,12 +244,12 @@ export class DependencyRepository extends BaseRepository<Dependency> {
       if (visited.has(key)) continue;
       visited.add(key);
 
-      // Check if we've reached the source - this would mean a cycle
-      if (current.type === sourceType && current.id === sourceId) {
+      // Check if we've reached the target - this would mean a cycle
+      if (current.type === targetType && current.id === targetId) {
         return true;
       }
 
-      // Get all entities that current depends on (blocks)
+      // Get all entities that current depends on (its blockers)
       const blockers = this.getBlockers(current.type, current.id);
       queue.push(...blockers);
     }
