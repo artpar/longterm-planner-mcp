@@ -52,6 +52,18 @@ export const MilestoneStatus = {
 export type MilestoneStatus = typeof MilestoneStatus[keyof typeof MilestoneStatus];
 
 /**
+ * Status enum for Objectives
+ */
+export const ObjectiveStatus = {
+  PENDING: 'pending',
+  ACTIVE: 'active',
+  COMPLETED: 'completed',
+  SKIPPED: 'skipped'
+} as const;
+
+export type ObjectiveStatus = typeof ObjectiveStatus[keyof typeof ObjectiveStatus];
+
+/**
  * Priority levels
  */
 export const Priority = {
