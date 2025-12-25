@@ -20,6 +20,7 @@ import { TaskService } from './services/TaskService.js';
 import { registerPlanTools } from './tools/plan.tools.js';
 import { registerTaskTools } from './tools/task.tools.js';
 import { registerExportTools } from './tools/export.tools.js';
+import { registerTemplateTools } from './tools/template.tools.js';
 import { ToolRegistry, ToolDefinition, ToolHandler } from './tools/types.js';
 import { getResourceDefinitions, registerResources, ResourceRegistry } from './resources/index.js';
 import { ResourceHandler } from './resources/types.js';
@@ -119,6 +120,7 @@ export class PlanningServer {
     registerPlanTools(registry, this.planRepo);
     registerTaskTools(registry, this.taskService);
     registerExportTools(registry, this.planRepo, this.taskService);
+    registerTemplateTools(registry, this.planRepo, this.taskService);
   }
 
   private registerResources(): void {
