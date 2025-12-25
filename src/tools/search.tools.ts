@@ -1,10 +1,6 @@
 import { ToolRegistry } from './types.js';
-import { PlanRepository } from '../db/repositories/PlanRepository.js';
-import { TaskRepository } from '../db/repositories/TaskRepository.js';
 import { Database } from '../db/Database.js';
 import { TaskStatus, Priority, PlanStatus } from '../models/enums.js';
-import { Task } from '../models/Task.js';
-import { Plan } from '../models/Plan.js';
 
 /**
  * Search result for tasks
@@ -27,9 +23,7 @@ interface TaskSearchResult {
  */
 export function registerSearchTools(
   registry: ToolRegistry,
-  db: Database,
-  planRepo: PlanRepository,
-  taskRepo: TaskRepository
+  db: Database
 ): void {
   // search_tasks
   registry.register(

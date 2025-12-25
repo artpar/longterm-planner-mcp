@@ -7,7 +7,7 @@ export interface InputSchema {
     type: string;
     description?: string;
     enum?: string[];
-    items?: { type: string };
+    items?: { type: string; enum?: string[] };
     default?: unknown;
   }>;
   required?: string[];

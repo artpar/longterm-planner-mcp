@@ -127,7 +127,7 @@ export class PlanningServer {
     registerExportTools(registry, this.planRepo, this.taskService);
     registerTemplateTools(registry, this.planRepo, this.taskService);
     registerDependencyTools(registry, this.dependencyRepo, this.taskRepo);
-    registerSearchTools(registry, this.db, this.planRepo, this.taskRepo);
+    registerSearchTools(registry, this.db);
   }
 
   private registerResources(): void {

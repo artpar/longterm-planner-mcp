@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "planning": {
+      "command": "npx",
+      "args": ["-y", "longterm-planner-mcp"]
+    }
+  }
+}
