@@ -39,6 +39,7 @@ export interface Task {
   startedAt: string | null;
   completedAt: string | null;
   context: TaskContext;
+  tags: string[];
   sequenceOrder: number;
   createdAt: string;
   updatedAt: string;

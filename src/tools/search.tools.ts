@@ -15,6 +15,7 @@ interface TaskSearchResult {
   priority: Priority;
   assignee: string | null;
   dueDate: string | null;
+  tags: string[];
   createdAt: string;
 }
 
@@ -73,6 +74,11 @@ export function registerSearchTools(
             type: 'boolean',
             description: 'Include completed/cancelled tasks (default: false)'
           },
+          tags: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Filter by tags (tasks must have ALL specified tags)'
+          },
           limit: {
             type: 'number',
             description: 'Maximum number of results (default: 50)'
@@ -89,6 +95,7 @@ export function registerSearchTools(
       const dueBefore = args.dueBefore as string | undefined;
       const dueAfter = args.dueAfter as string | undefined;
       const includeCompleted = args.includeCompleted as boolean ?? false;
+      const tags = args.tags as string[] | undefined;
       const limit = Math.min(args.limit as number || 50, 200);
 
       let sql = 'SELECT t.*, p.name as plan_name FROM tasks t JOIN plans p ON t.plan_id = p.id WHERE 1=1';
@@ -141,6 +148,15 @@ export function registerSearchTools(
         params.push(dueAfter);
       }
 
+      // Tag filter - tasks must have ALL specified tags
+      if (tags && tags.length > 0) {
+        for (const tag of tags) {
+          const normalizedTag = tag.toLowerCase().trim();
+          sql += ' AND t.tags LIKE ?';
+          params.push(`%"${normalizedTag}"%`);
+        }
+      }
+
       sql += ' ORDER BY t.priority = \'critical\' DESC, t.priority = \'high\' DESC, t.due_date ASC NULLS LAST, t.created_at DESC';
       sql += ' LIMIT ?';
       params.push(limit);
@@ -155,23 +171,33 @@ export function registerSearchTools(
         priority: string;
         assignee: string | null;
         due_date: string | null;
+        tags: string;
         created_at: string;
       }
 
       const rows = db.prepare(sql).all(...params) as TaskWithPlan[];
 
-      const results: TaskSearchResult[] = rows.map(row => ({
-        id: row.id,
-        planId: row.plan_id,
-        planName: row.plan_name,
-        title: row.title,
-        description: row.description,
-        status: row.status as TaskStatus,
-        priority: row.priority as Priority,
-        assignee: row.assignee,
-        dueDate: row.due_date,
-        createdAt: row.created_at
-      }));
+      const results: TaskSearchResult[] = rows.map(row => {
+        let parsedTags: string[] = [];
+        try {
+          parsedTags = JSON.parse(row.tags || '[]');
+        } catch {
+          parsedTags = [];
+        }
+        return {
+          id: row.id,
+          planId: row.plan_id,
+          planName: row.plan_name,
+          title: row.title,
+          description: row.description,
+          status: row.status as TaskStatus,
+          priority: row.priority as Priority,
+          assignee: row.assignee,
+          dueDate: row.due_date,
+          tags: parsedTags,
+          createdAt: row.created_at
+        };
+      });
 
       return {
         count: results.length,
@@ -183,7 +209,8 @@ export function registerSearchTools(
           priority: priority || null,
           assignee: assignee || null,
           dueBefore: dueBefore || null,
-          dueAfter: dueAfter || null
+          dueAfter: dueAfter || null,
+          tags: tags || null
         }
       };
     }

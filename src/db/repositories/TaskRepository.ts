@@ -29,6 +29,7 @@ interface TaskRow {
   started_at: string | null;
   completed_at: string | null;
   context: string;
+  tags: string;
   sequence_order: number;
   created_at: string;
   updated_at: string;
@@ -86,6 +87,7 @@ export class TaskRepository extends BaseRepository<Task> {
       startedAt: r.started_at,
       completedAt: r.completed_at,
       context: this.parseJson<TaskContext>(r.context),
+      tags: this.parseJson<string[]>(r.tags) || [],
       sequenceOrder: r.sequence_order,
       createdAt: r.created_at,
       updatedAt: r.updated_at
@@ -337,5 +339,100 @@ export class TaskRepository extends BaseRepository<Task> {
     });
 
     return this.findById(taskId);
+  }
+
+  /**
+   * Add a tag to a task
+   */
+  addTag(taskId: string, tag: string): Task | null {
+    const task = this.findById(taskId);
+    if (!task) return null;
+
+    const normalizedTag = tag.toLowerCase().trim();
+    if (!normalizedTag) return task;
+
+    // Don't add duplicate tags
+    if (task.tags.includes(normalizedTag)) {
+      return task;
+    }
+
+    const newTags = [...task.tags, normalizedTag];
+    this.db
+      .prepare('UPDATE tasks SET tags = ?, updated_at = ? WHERE id = ?')
+      .run(this.toJson(newTags), this.now(), taskId);
+
+    return this.findById(taskId);
+  }
+
+  /**
+   * Remove a tag from a task
+   */
+  removeTag(taskId: string, tag: string): Task | null {
+    const task = this.findById(taskId);
+    if (!task) return null;
+
+    const normalizedTag = tag.toLowerCase().trim();
+    const newTags = task.tags.filter(t => t !== normalizedTag);
+
+    if (newTags.length === task.tags.length) {
+      return task; // Tag wasn't present
+    }
+
+    this.db
+      .prepare('UPDATE tasks SET tags = ?, updated_at = ? WHERE id = ?')
+      .run(this.toJson(newTags), this.now(), taskId);
+
+    return this.findById(taskId);
+  }
+
+  /**
+   * Set all tags for a task (replaces existing)
+   */
+  setTags(taskId: string, tags: string[]): Task | null {
+    const task = this.findById(taskId);
+    if (!task) return null;
+
+    const normalizedTags = [...new Set(tags.map(t => t.toLowerCase().trim()).filter(t => t))];
+
+    this.db
+      .prepare('UPDATE tasks SET tags = ?, updated_at = ? WHERE id = ?')
+      .run(this.toJson(normalizedTags), this.now(), taskId);
+
+    return this.findById(taskId);
+  }
+
+  /**
+   * Find tasks by tag
+   */
+  findByTag(planId: string, tag: string): Task[] {
+    const normalizedTag = tag.toLowerCase().trim();
+    // SQLite JSON search - tags is a JSON array
+    const rows = this.db
+      .prepare(`
+        SELECT * FROM tasks
+        WHERE plan_id = ?
+        AND tags LIKE ?
+        ORDER BY sequence_order ASC
+      `)
+      .all(planId, `%"${normalizedTag}"%`) as TaskRow[];
+
+    return rows.map(row => this.mapRowToEntity(row));
+  }
+
+  /**
+   * Get all unique tags used in a plan
+   */
+  getAllTags(planId: string): string[] {
+    const rows = this.db
+      .prepare('SELECT tags FROM tasks WHERE plan_id = ?')
+      .all(planId) as Array<{ tags: string }>;
+
+    const allTags = new Set<string>();
+    for (const row of rows) {
+      const tags = this.parseJson<string[]>(row.tags) || [];
+      tags.forEach(tag => allTags.add(tag));
+    }
+
+    return Array.from(allTags).sort();
   }
 }

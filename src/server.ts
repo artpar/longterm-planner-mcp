@@ -14,6 +14,7 @@ import {
 import { Database } from './db/Database.js';
 import { MigrationRunner } from './db/migrations/runner.js';
 import { initialSchema } from './db/migrations/001-initial-schema.js';
+import { taskTags } from './db/migrations/004-task-tags.js';
 import { PlanRepository } from './db/repositories/PlanRepository.js';
 import { TaskRepository } from './db/repositories/TaskRepository.js';
 import { TaskService } from './services/TaskService.js';
@@ -23,6 +24,7 @@ import { registerExportTools } from './tools/export.tools.js';
 import { registerTemplateTools } from './tools/template.tools.js';
 import { registerDependencyTools } from './tools/dependency.tools.js';
 import { registerSearchTools } from './tools/search.tools.js';
+import { registerTagTools } from './tools/tag.tools.js';
 import { DependencyRepository } from './db/repositories/DependencyRepository.js';
 import { ToolRegistry, ToolDefinition, ToolHandler } from './tools/types.js';
 import { getResourceDefinitions, registerResources, ResourceRegistry } from './resources/index.js';
@@ -66,6 +68,7 @@ export class PlanningServer {
     const runner = new MigrationRunner(this.db);
     runner.initialize();
     runner.runMigration(initialSchema);
+    runner.runMigration(taskTags);
 
     // Initialize repositories and services
     this.planRepo = new PlanRepository(this.db);
@@ -128,6 +131,7 @@ export class PlanningServer {
     registerTemplateTools(registry, this.planRepo, this.taskService);
     registerDependencyTools(registry, this.dependencyRepo, this.taskRepo);
     registerSearchTools(registry, this.db);
+    registerTagTools(registry, this.taskRepo);
   }
 
   private registerResources(): void {
