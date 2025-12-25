@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Test coverage
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Planning data (db files, keep exports)
+*.db
+*.db-wal
+*.db-shm
+
+# But keep exports directory structure
+!.planning/exports/
+
+# Temporary files
+tmp/
+temp/
