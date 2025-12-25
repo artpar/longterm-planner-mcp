@@ -22,6 +22,7 @@ import { registerTaskTools } from './tools/task.tools.js';
 import { registerExportTools } from './tools/export.tools.js';
 import { registerTemplateTools } from './tools/template.tools.js';
 import { registerDependencyTools } from './tools/dependency.tools.js';
+import { registerSearchTools } from './tools/search.tools.js';
 import { DependencyRepository } from './db/repositories/DependencyRepository.js';
 import { ToolRegistry, ToolDefinition, ToolHandler } from './tools/types.js';
 import { getResourceDefinitions, registerResources, ResourceRegistry } from './resources/index.js';
@@ -126,6 +127,7 @@ export class PlanningServer {
     registerExportTools(registry, this.planRepo, this.taskService);
     registerTemplateTools(registry, this.planRepo, this.taskService);
     registerDependencyTools(registry, this.dependencyRepo, this.taskRepo);
+    registerSearchTools(registry, this.db, this.planRepo, this.taskRepo);
   }
 
   private registerResources(): void {
