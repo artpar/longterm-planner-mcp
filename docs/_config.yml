@@ -1,0 +1,20 @@
+title: longterm-planner-mcp
+description: MCP server for long-term planning in Claude Code
+theme: jekyll-theme-cayman
+baseurl: "/longterm-planner-mcp"
+url: "https://artpar.github.io"
+
+# Navigation
+nav:
+  - title: Home
+    url: /
+  - title: Getting Started
+    url: /getting-started
+  - title: Tools
+    url: /tools
+  - title: Templates
+    url: /templates
+
+# GitHub
+github:
+  repository_url: https://github.com/artpar/longterm-planner-mcp

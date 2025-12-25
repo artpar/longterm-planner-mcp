@@ -1,5 +1,8 @@
 # longterm-planner-mcp
 
+[![npm version](https://badge.fury.io/js/longterm-planner-mcp.svg)](https://www.npmjs.com/package/longterm-planner-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A Model Context Protocol (MCP) server for long-term planning management in Claude Code. Track plans, tasks, goals, and progress across coding sessions with persistent SQLite storage.
 
 ## Features
@@ -7,10 +10,13 @@ A Model Context Protocol (MCP) server for long-term planning management in Claud
 - **Persistent Planning** - SQLite database stores plans and tasks across sessions
 - **Task Management** - Full lifecycle: backlog → ready → in_progress → review → completed
 - **State Machine** - Enforced status transitions prevent invalid task states
+- **Task Dependencies** - Define blocking relationships with circular dependency detection
+- **Plan Templates** - 10 built-in templates for common project types (web apps, APIs, etc.)
+- **Search & Filter** - Find tasks across plans by text, status, priority, dates, assignee
 - **Progress Tracking** - Track estimated vs actual hours, completion stats
 - **Git Integration** - Link commits to tasks via branch names or commit messages
+- **Export/Import** - Export plans to JSON or Markdown, import from JSON
 - **Session Continuity** - Pick up where you left off with context preservation
-- **Markdown Export** - Export plans to readable markdown format
 - **Backup & Restore** - Automated backups with rotation
 
 ## Installation
@@ -90,23 +96,59 @@ Claude will use the MCP tools to:
 | `update_plan` | Update plan name, description, dates |
 | `list_plans` | List all plans, optionally filter by project |
 | `archive_plan` | Archive a completed plan |
-| `clone_plan` | Clone a plan as a template |
+| `activate_plan` | Activate a draft plan |
 
 ### Task Management
 
 | Tool | Description |
 |------|-------------|
 | `add_task` | Add a task to a plan |
-| `get_task` | Get task details |
 | `update_task` | Update task properties |
-| `delete_task` | Remove a task |
 | `start_task` | Begin working on a task |
 | `complete_task` | Mark task as completed |
 | `block_task` | Mark task as blocked with reason |
 | `unblock_task` | Remove blocker from task |
-| `add_subtask` | Create a subtask |
-| `reorder_tasks` | Change task sequence |
-| `bulk_update_tasks` | Update multiple tasks at once |
+| `submit_for_review` | Submit task for review |
+| `find_tasks` | Find tasks in a plan with filters |
+| `get_blocked` | Get all blocked tasks |
+| `get_progress` | Get plan progress statistics |
+| `delete_task` | Remove a task |
+
+### Templates
+
+| Tool | Description |
+|------|-------------|
+| `list_templates` | List available plan templates |
+| `create_from_template` | Create a plan from a template |
+
+Built-in templates: `web-app`, `rest-api`, `cli-tool`, `library`, `bug-fix`, `feature`, `project-kickoff`, `sprint`, `release`, `migration`
+
+### Dependencies
+
+| Tool | Description |
+|------|-------------|
+| `add_dependency` | Add a dependency between tasks |
+| `remove_dependency` | Remove a dependency |
+| `get_dependencies` | Get task dependencies |
+| `get_dependency_chain` | Get full dependency chain |
+| `check_can_start` | Check if task can start |
+
+### Search & Filter
+
+| Tool | Description |
+|------|-------------|
+| `search_tasks` | Search tasks with text and filters |
+| `search_plans` | Search plans by name/status |
+| `find_overdue_tasks` | Find tasks past due date |
+| `find_upcoming_tasks` | Find tasks due within N days |
+| `get_task_summary` | Get task statistics |
+
+### Export/Import
+
+| Tool | Description |
+|------|-------------|
+| `export_plan` | Export plan to JSON or Markdown |
+| `import_plan` | Import plan from JSON |
 
 ## Resources
 
@@ -230,7 +272,7 @@ Environment variables:
 
 ```bash
 # Clone the repo
-git clone https://github.com/youruser/longterm-planner-mcp
+git clone https://github.com/artpar/longterm-planner-mcp
 cd longterm-planner-mcp
 
 # Install dependencies
