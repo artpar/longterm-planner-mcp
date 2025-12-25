@@ -45,6 +45,9 @@ describe('BackupManager', () => {
     testPlanId = plan.id;
     taskService.createTask({ planId: testPlanId, title: 'Task 1' });
     taskService.createTask({ planId: testPlanId, title: 'Task 2' });
+
+    // Flush to ensure data is written to disk before backup tests
+    db.flush();
   });
 
   afterEach(() => {

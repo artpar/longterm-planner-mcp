@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { getTestDbPath, cleanupTestDb } from '../setup.js';
 import { Database } from '../../src/db/Database.js';
+import { existsSync, writeFileSync, unlinkSync, readdirSync } from 'fs';
+import { dirname } from 'path';
 
 describe('Database', () => {
   let dbPath: string;
@@ -24,22 +26,10 @@ describe('Database', () => {
       expect(db.isOpen()).toBe(true);
     });
 
-    it('should enable WAL journal mode', () => {
-      db = new Database(dbPath);
-      const result = db.pragma('journal_mode');
-      expect(result).toBe('wal');
-    });
-
     it('should enable foreign keys', () => {
       db = new Database(dbPath);
       const result = db.pragma('foreign_keys');
       expect(result).toBe(1);
-    });
-
-    it('should set busy timeout', () => {
-      db = new Database(dbPath);
-      const result = db.pragma('busy_timeout');
-      expect(result).toBeGreaterThanOrEqual(5000);
     });
   });
 
@@ -138,6 +128,68 @@ describe('Database', () => {
       const info = db.getTableInfo('test_table');
       expect(info).toHaveLength(3);
       expect(info.map(c => c.name)).toEqual(['id', 'name', 'age']);
+    });
+  });
+
+  describe('WAL file cleanup', () => {
+    it('should remove WAL files on initialization', () => {
+      // Create a database first
+      db = new Database(dbPath);
+      db.exec('CREATE TABLE test (id INTEGER)');
+      db.close();
+
+      // Simulate leftover WAL/SHM files from better-sqlite3
+      const walPath = `${dbPath}-wal`;
+      const shmPath = `${dbPath}-shm`;
+      writeFileSync(walPath, 'fake wal data');
+      writeFileSync(shmPath, 'fake shm data');
+
+      expect(existsSync(walPath)).toBe(true);
+      expect(existsSync(shmPath)).toBe(true);
+
+      // Reopen database - should clean up WAL files
+      db = new Database(dbPath);
+
+      expect(existsSync(walPath)).toBe(false);
+      expect(existsSync(shmPath)).toBe(false);
+      expect(db.isOpen()).toBe(true);
+    });
+  });
+
+  describe('corruption handling', () => {
+    it('should handle corrupted database by creating fresh one', () => {
+      // Write garbage to database file
+      writeFileSync(dbPath, 'this is not a valid sqlite database');
+
+      // Should not throw - should recover gracefully
+      expect(() => {
+        db = new Database(dbPath);
+      }).not.toThrow();
+
+      expect(db.isOpen()).toBe(true);
+
+      // Should be a fresh working database
+      db.exec('CREATE TABLE test (id INTEGER)');
+      expect(db.tableExists('test')).toBe(true);
+    });
+
+    it('should backup corrupted database before replacing', () => {
+      // Write garbage to database file
+      writeFileSync(dbPath, 'corrupted data here');
+
+      db = new Database(dbPath);
+
+      // Check for backup file
+      const dir = dirname(dbPath);
+      const files = readdirSync(dir);
+      const backupFile = files.find(f => f.includes('.corrupt.'));
+
+      expect(backupFile).toBeDefined();
+
+      // Cleanup backup
+      if (backupFile) {
+        unlinkSync(`${dir}/${backupFile}`);
+      }
     });
   });
 });
