@@ -16,6 +16,7 @@ import { MigrationRunner } from './db/migrations/runner.js';
 import { initialSchema } from './db/migrations/001-initial-schema.js';
 import { taskTags } from './db/migrations/004-task-tags.js';
 import { taskComments } from './db/migrations/005-task-comments.js';
+import { migrateGlobalToProjectDatabases } from './db/migrations/global-to-project.js';
 import { PlanRepository } from './db/repositories/PlanRepository.js';
 import { TaskRepository } from './db/repositories/TaskRepository.js';
 import { TaskService } from './services/TaskService.js';
@@ -63,6 +64,9 @@ export class PlanningServer {
   private prompts: Map<string, { definition: PromptDefinition; handler: PromptHandler }>;
 
   constructor(config: ServerConfig = {}) {
+    // Migrate from global database to per-project databases (one-time migration)
+    migrateGlobalToProjectDatabases();
+
     // Initialize database - use project directory for per-project storage
     const projectPath = config.projectPath ?? process.cwd();
     const dbPath = config.dbPath ?? this.getDefaultDbPath(projectPath);
