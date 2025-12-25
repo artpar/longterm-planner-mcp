@@ -36,7 +36,6 @@ import { ResourceHandler } from './resources/types.js';
 import { getPromptDefinitions, registerPrompts, PromptRegistry } from './prompts/index.js';
 import { PromptHandler, PromptDefinition } from './prompts/types.js';
 
-import { homedir } from 'os';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 
@@ -64,8 +63,9 @@ export class PlanningServer {
   private prompts: Map<string, { definition: PromptDefinition; handler: PromptHandler }>;
 
   constructor(config: ServerConfig = {}) {
-    // Initialize database
-    const dbPath = config.dbPath ?? this.getDefaultDbPath();
+    // Initialize database - use project directory for per-project storage
+    const projectPath = config.projectPath ?? process.cwd();
+    const dbPath = config.dbPath ?? this.getDefaultDbPath(projectPath);
     this.ensureDbDirectory(dbPath);
     this.db = new Database(dbPath);
 
@@ -112,8 +112,9 @@ export class PlanningServer {
     this.setupHandlers();
   }
 
-  private getDefaultDbPath(): string {
-    const planningDir = join(homedir(), '.claude', 'planning');
+  private getDefaultDbPath(projectPath: string): string {
+    // Store database in project's .claude/planning directory
+    const planningDir = join(projectPath, '.claude', 'planning');
     return join(planningDir, 'plans.db');
   }
 
