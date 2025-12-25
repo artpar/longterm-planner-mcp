@@ -25,6 +25,7 @@ import { registerTemplateTools } from './tools/template.tools.js';
 import { registerDependencyTools } from './tools/dependency.tools.js';
 import { registerSearchTools } from './tools/search.tools.js';
 import { registerTagTools } from './tools/tag.tools.js';
+import { registerBulkTools } from './tools/bulk.tools.js';
 import { DependencyRepository } from './db/repositories/DependencyRepository.js';
 import { ToolRegistry, ToolDefinition, ToolHandler } from './tools/types.js';
 import { getResourceDefinitions, registerResources, ResourceRegistry } from './resources/index.js';
@@ -132,6 +133,7 @@ export class PlanningServer {
     registerDependencyTools(registry, this.dependencyRepo, this.taskRepo);
     registerSearchTools(registry, this.db);
     registerTagTools(registry, this.taskRepo);
+    registerBulkTools(registry, this.taskRepo);
   }
 
   private registerResources(): void {

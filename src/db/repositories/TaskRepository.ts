@@ -435,4 +435,197 @@ export class TaskRepository extends BaseRepository<Task> {
 
     return Array.from(allTags).sort();
   }
+
+  /**
+   * Bulk update status for multiple tasks
+   */
+  bulkUpdateStatus(taskIds: string[], status: TaskStatus): { updated: Task[]; failed: string[] } {
+    const updated: Task[] = [];
+    const failed: string[] = [];
+    const timestamp = this.now();
+
+    this.db.transaction(() => {
+      for (const taskId of taskIds) {
+        const task = this.findById(taskId);
+        if (!task) {
+          failed.push(taskId);
+          continue;
+        }
+
+        let startedAt = task.startedAt;
+        let completedAt = task.completedAt;
+
+        if (status === TaskStatus.IN_PROGRESS && !task.startedAt) {
+          startedAt = timestamp;
+        }
+        if (status === TaskStatus.COMPLETED && !task.completedAt) {
+          completedAt = timestamp;
+        }
+
+        this.db
+          .prepare('UPDATE tasks SET status = ?, started_at = ?, completed_at = ?, updated_at = ? WHERE id = ?')
+          .run(status, startedAt, completedAt, timestamp, taskId);
+
+        const updatedTask = this.findById(taskId);
+        if (updatedTask) {
+          updated.push(updatedTask);
+        }
+      }
+    });
+
+    return { updated, failed };
+  }
+
+  /**
+   * Bulk update priority for multiple tasks
+   */
+  bulkUpdatePriority(taskIds: string[], priority: Priority): { updated: Task[]; failed: string[] } {
+    const updated: Task[] = [];
+    const failed: string[] = [];
+    const timestamp = this.now();
+
+    this.db.transaction(() => {
+      for (const taskId of taskIds) {
+        const task = this.findById(taskId);
+        if (!task) {
+          failed.push(taskId);
+          continue;
+        }
+
+        this.db
+          .prepare('UPDATE tasks SET priority = ?, updated_at = ? WHERE id = ?')
+          .run(priority, timestamp, taskId);
+
+        const updatedTask = this.findById(taskId);
+        if (updatedTask) {
+          updated.push(updatedTask);
+        }
+      }
+    });
+
+    return { updated, failed };
+  }
+
+  /**
+   * Bulk update assignee for multiple tasks
+   */
+  bulkUpdateAssignee(taskIds: string[], assignee: string | null): { updated: Task[]; failed: string[] } {
+    const updated: Task[] = [];
+    const failed: string[] = [];
+    const timestamp = this.now();
+
+    this.db.transaction(() => {
+      for (const taskId of taskIds) {
+        const task = this.findById(taskId);
+        if (!task) {
+          failed.push(taskId);
+          continue;
+        }
+
+        this.db
+          .prepare('UPDATE tasks SET assignee = ?, updated_at = ? WHERE id = ?')
+          .run(assignee, timestamp, taskId);
+
+        const updatedTask = this.findById(taskId);
+        if (updatedTask) {
+          updated.push(updatedTask);
+        }
+      }
+    });
+
+    return { updated, failed };
+  }
+
+  /**
+   * Bulk add tag to multiple tasks
+   */
+  bulkAddTag(taskIds: string[], tag: string): { updated: Task[]; failed: string[] } {
+    const updated: Task[] = [];
+    const failed: string[] = [];
+    const normalizedTag = tag.toLowerCase().trim();
+
+    if (!normalizedTag) {
+      return { updated, failed: taskIds };
+    }
+
+    this.db.transaction(() => {
+      for (const taskId of taskIds) {
+        const task = this.findById(taskId);
+        if (!task) {
+          failed.push(taskId);
+          continue;
+        }
+
+        if (!task.tags.includes(normalizedTag)) {
+          const newTags = [...task.tags, normalizedTag];
+          this.db
+            .prepare('UPDATE tasks SET tags = ?, updated_at = ? WHERE id = ?')
+            .run(this.toJson(newTags), this.now(), taskId);
+        }
+
+        const updatedTask = this.findById(taskId);
+        if (updatedTask) {
+          updated.push(updatedTask);
+        }
+      }
+    });
+
+    return { updated, failed };
+  }
+
+  /**
+   * Bulk remove tag from multiple tasks
+   */
+  bulkRemoveTag(taskIds: string[], tag: string): { updated: Task[]; failed: string[] } {
+    const updated: Task[] = [];
+    const failed: string[] = [];
+    const normalizedTag = tag.toLowerCase().trim();
+
+    this.db.transaction(() => {
+      for (const taskId of taskIds) {
+        const task = this.findById(taskId);
+        if (!task) {
+          failed.push(taskId);
+          continue;
+        }
+
+        const newTags = task.tags.filter(t => t !== normalizedTag);
+        if (newTags.length !== task.tags.length) {
+          this.db
+            .prepare('UPDATE tasks SET tags = ?, updated_at = ? WHERE id = ?')
+            .run(this.toJson(newTags), this.now(), taskId);
+        }
+
+        const updatedTask = this.findById(taskId);
+        if (updatedTask) {
+          updated.push(updatedTask);
+        }
+      }
+    });
+
+    return { updated, failed };
+  }
+
+  /**
+   * Bulk delete multiple tasks
+   */
+  bulkDelete(taskIds: string[]): { deleted: string[]; failed: string[] } {
+    const deleted: string[] = [];
+    const failed: string[] = [];
+
+    this.db.transaction(() => {
+      for (const taskId of taskIds) {
+        const task = this.findById(taskId);
+        if (!task) {
+          failed.push(taskId);
+          continue;
+        }
+
+        this.db.prepare('DELETE FROM tasks WHERE id = ?').run(taskId);
+        deleted.push(taskId);
+      }
+    });
+
+    return { deleted, failed };
+  }
 }
