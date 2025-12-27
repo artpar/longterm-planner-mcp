@@ -39,6 +39,7 @@ import { PromptHandler, PromptDefinition } from './prompts/types.js';
 
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
+import { formatResult } from './utils/formatter.js';
 
 /**
  * Configuration for the MCP server
@@ -194,7 +195,7 @@ export class PlanningServer {
           content: [
             {
               type: 'text',
-              text: typeof result === 'string' ? result : JSON.stringify(result, null, 2)
+              text: formatResult(result)
             }
           ]
         };
