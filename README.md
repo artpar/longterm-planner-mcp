@@ -214,7 +214,17 @@ Pre-built prompts for common planning scenarios:
 
 ## Data Storage
 
-Plans are stored in SQLite at `~/.claude/planning/plans.db`.
+Plans are stored in SQLite at `.claude/planning/plans.db` **within each project directory**. This keeps planning data isolated per project and version-controllable if desired.
+
+### Upgrading from v0.2.9 or earlier
+
+Previous versions stored all plans in a global database at `~/.claude/planning/plans.db`. Version 0.2.10+ automatically migrates your data:
+
+1. **Update the package**: Just restart Claude Code - it uses `npx -y` which fetches the latest version
+2. **Migration runs automatically**: On first startup, existing plans are copied to their respective project directories
+3. **Global database archived**: The old database is renamed to `plans.db.migrated` as a backup
+
+No action required - the migration is seamless and preserves all your data.
 
 ### Schema
 
@@ -301,7 +311,7 @@ Environment variables:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `PLANNING_DB_PATH` | Database file path | `~/.claude/planning/plans.db` |
+| `PLANNING_DB_PATH` | Database file path | `.claude/planning/plans.db` (in project dir) |
 
 ## Development
 
