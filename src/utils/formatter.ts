@@ -1,5 +1,5 @@
 /**
- * Format tool results - compact, scannable output for logs
+ * Format tool results - compact, aligned table output
  */
 
 type Val = string | number | boolean | null | undefined | Val[] | { [key: string]: Val };
@@ -54,7 +54,7 @@ export function formatResult(result: unknown): string {
     return formatEntity(obj);
   }
 
-  // Generic object - one line per key
+  // Generic object
   return Object.entries(obj)
     .filter(([, v]) => v != null && v !== '')
     .map(([k, v]) => `${k}: ${fmt(v)}`)
@@ -63,28 +63,56 @@ export function formatResult(result: unknown): string {
 
 function formatPlans(plans: Record<string, Val>[]): string {
   if (plans.length === 0) return 'No plans';
-  return plans.map(p => `${p.id}: ${p.name} [${status(p.status)}]`).join('\n');
+
+  const rows = plans.map(p => [
+    String(p.id || ''),
+    String(p.name || ''),
+    status(p.status),
+    p.projectPath ? shortenPath(String(p.projectPath)) : ''
+  ]);
+
+  return tabulate(rows);
 }
 
 function formatTasks(tasks: Record<string, Val>[]): string {
   if (tasks.length === 0) return 'No tasks';
-  return tasks.map(t => {
-    const parts = [`${t.id}: ${t.title}`, status(t.status)];
-    if (t.priority && t.priority !== 'medium') parts.push(priority(t.priority as string));
-    if (t.dueDate) parts.push(`due ${shortDate(t.dueDate as string)}`);
-    return parts.join(' | ');
-  }).join('\n');
+
+  const rows = tasks.map(t => {
+    const cols = [
+      String(t.id || ''),
+      String(t.title || ''),
+      status(t.status),
+      t.priority && t.priority !== 'medium' ? priority(t.priority as string) : '',
+      t.dueDate ? `due ${shortDate(t.dueDate as string)}` : ''
+    ];
+    return cols;
+  });
+
+  return tabulate(rows);
 }
 
 function formatComments(comments: Record<string, Val>[]): string {
   if (comments.length === 0) return 'No comments';
-  return comments.map(c =>
-    `${shortDate(c.createdAt as string)} ${c.author || 'anon'}: ${c.content}`
-  ).join('\n');
+
+  const rows = comments.map(c => [
+    shortDate(c.createdAt as string),
+    String(c.author || 'anon'),
+    String(c.content || '')
+  ]);
+
+  return tabulate(rows);
 }
 
 function formatTemplates(templates: Record<string, Val>[]): string {
-  return templates.map(t => `${t.id}: ${t.name}`).join('\n');
+  if (templates.length === 0) return 'No templates';
+
+  const rows = templates.map(t => [
+    String(t.id || ''),
+    String(t.name || ''),
+    t.description ? String(t.description).slice(0, 40) : ''
+  ]);
+
+  return tabulate(rows);
 }
 
 function formatCanStart(obj: Record<string, Val>): string {
@@ -133,6 +161,36 @@ function formatEntity(obj: Record<string, Val>): string {
   return parts.join(' ') || String(id);
 }
 
+/**
+ * Format rows into aligned columns
+ */
+function tabulate(rows: string[][]): string {
+  if (rows.length === 0) return '';
+
+  // Calculate max width for each column
+  const colCount = Math.max(...rows.map(r => r.length));
+  const widths: number[] = new Array(colCount).fill(0);
+
+  for (const row of rows) {
+    for (let i = 0; i < row.length; i++) {
+      widths[i] = Math.max(widths[i], row[i].length);
+    }
+  }
+
+  // Format each row with padding
+  return rows.map(row => {
+    return row
+      .map((cell, i) => {
+        // Don't pad last non-empty column
+        const isLast = row.slice(i + 1).every(c => !c);
+        return isLast ? cell : cell.padEnd(widths[i]);
+      })
+      .filter(c => c) // Remove empty trailing columns
+      .join('  ')
+      .trimEnd();
+  }).join('\n');
+}
+
 function status(s: Val): string {
   const map: Record<string, string> = {
     backlog: 'backlog', ready: 'ready', in_progress: 'active',
@@ -154,6 +212,19 @@ function shortDate(d: string): string {
     const day = date.getDate();
     return `${m}/${day}`;
   } catch { return d; }
+}
+
+function shortenPath(p: string): string {
+  const home = process.env.HOME || '';
+  if (home && p.startsWith(home)) {
+    return '~' + p.slice(home.length);
+  }
+  // Just show last 2 segments if long
+  const parts = p.split('/').filter(Boolean);
+  if (parts.length > 2) {
+    return '.../' + parts.slice(-2).join('/');
+  }
+  return p;
 }
 
 function fmt(v: Val): string {
