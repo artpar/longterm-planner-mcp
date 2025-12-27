@@ -37,7 +37,7 @@ A Model Context Protocol (MCP) server for long-term planning management in Claud
 
 ## Roadmap
 
-- [ ] Auto-summarize progress when starting a new session
+- [x] Auto-summarize progress when starting a new session
 - [ ] Deeper git integration (auto-link commits to tasks)
 - [ ] Session continuity prompts ("Last time you were working on X...")
 - [ ] Time tracking and estimates vs actuals reporting
@@ -203,6 +203,22 @@ Built-in templates: `web-app`, `rest-api`, `cli-tool`, `library`, `bug-fix`, `fe
 | `update_comment` | Update a comment |
 | `delete_comment` | Delete a comment |
 | `get_recent_comments` | Get recent comments in a plan |
+
+### Session
+
+| Tool | Description |
+|------|-------------|
+| `get_session_summary` | Get project planning context at session start |
+
+**Example output:**
+```
+Last session: 2d ago
+Auth System: 5/12 (42%)
+  active: Login form, OAuth setup
+  blocked: DB migration
+  ready: 3 task(s)
+Last: Completed login validation (2d ago)
+```
 
 ## Resources
 

@@ -29,6 +29,7 @@ import { registerSearchTools } from './tools/search.tools.js';
 import { registerTagTools } from './tools/tag.tools.js';
 import { registerBulkTools } from './tools/bulk.tools.js';
 import { registerCommentTools } from './tools/comment.tools.js';
+import { registerSessionTools } from './tools/session.tools.js';
 import { DependencyRepository } from './db/repositories/DependencyRepository.js';
 import { CommentRepository } from './db/repositories/CommentRepository.js';
 import { ToolRegistry, ToolDefinition, ToolHandler } from './tools/types.js';
@@ -147,6 +148,7 @@ export class PlanningServer {
     registerTagTools(registry, this.taskRepo);
     registerBulkTools(registry, this.taskRepo);
     registerCommentTools(registry, this.commentRepo, this.taskRepo);
+    registerSessionTools(registry, this.planRepo, this.taskService, this.db);
   }
 
   private registerResources(): void {
