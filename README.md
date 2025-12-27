@@ -22,6 +22,26 @@ A Model Context Protocol (MCP) server for long-term planning management in Claud
 - **Session Continuity** - Pick up where you left off with context preservation
 - **Backup & Restore** - Automated backups with rotation
 
+## When to Use
+
+**Worth it for:**
+- Multi-session projects where context is lost between conversations
+- Team handoffs - persisted state others can pick up
+- Complex features with many task dependencies
+- Audit trail of decisions and progress
+
+**Overhead for:**
+- Single-session tasks (Claude Code's built-in TodoWrite is lighter)
+- Solo work where you remember context
+- Simple bug fixes or quick features
+
+## Roadmap
+
+- [ ] Auto-summarize progress when starting a new session
+- [ ] Deeper git integration (auto-link commits to tasks)
+- [ ] Session continuity prompts ("Last time you were working on X...")
+- [ ] Time tracking and estimates vs actuals reporting
+
 ## Installation
 
 ### For Claude Code
