@@ -1,365 +1,165 @@
 /**
- * Format tool results for human-readable output
+ * Format tool results - compact, scannable output for logs
  */
 
-type ResultValue = string | number | boolean | null | undefined | ResultValue[] | { [key: string]: ResultValue };
+type Val = string | number | boolean | null | undefined | Val[] | { [key: string]: Val };
 
-/**
- * Format a tool result into readable text
- */
 export function formatResult(result: unknown): string {
-  if (typeof result === 'string') {
-    return result;
+  if (typeof result === 'string') return result;
+  if (result === null || result === undefined) return 'Done';
+  if (typeof result !== 'object') return String(result);
+
+  const obj = result as Record<string, Val>;
+
+  // Message-based results
+  if ('message' in obj) {
+    const id = obj.planId || obj.taskId || obj.id;
+    return id ? `${obj.message} (${id})` : String(obj.message);
   }
 
-  if (result === null || result === undefined) {
-    return 'No result';
-  }
-
-  if (typeof result !== 'object') {
-    return String(result);
-  }
-
-  const obj = result as Record<string, ResultValue>;
-
-  // Check for common patterns and format accordingly
-  if ('message' in obj && typeof obj.message === 'string') {
-    return formatWithMessage(obj);
-  }
-
+  // Lists
   if ('plans' in obj && Array.isArray(obj.plans)) {
-    return formatPlansList(obj.plans as Record<string, ResultValue>[], obj.count as number);
+    return formatPlans(obj.plans as Record<string, Val>[]);
   }
-
   if ('tasks' in obj && Array.isArray(obj.tasks)) {
-    return formatTasksList(obj.tasks as Record<string, ResultValue>[], obj);
+    return formatTasks(obj.tasks as Record<string, Val>[]);
   }
-
   if ('comments' in obj && Array.isArray(obj.comments)) {
-    return formatCommentsList(obj.comments as Record<string, ResultValue>[]);
+    return formatComments(obj.comments as Record<string, Val>[]);
   }
-
   if ('templates' in obj && Array.isArray(obj.templates)) {
-    return formatTemplatesList(obj.templates as Record<string, ResultValue>[]);
+    return formatTemplates(obj.templates as Record<string, Val>[]);
   }
 
-  if ('dependencies' in obj || 'dependsOn' in obj || 'blocks' in obj) {
-    return formatDependencies(obj);
+  // Dependencies
+  if ('canStart' in obj) {
+    return formatCanStart(obj);
+  }
+  if ('dependsOn' in obj || 'blocks' in obj) {
+    return formatDeps(obj);
   }
 
+  // Summary stats
   if ('byStatus' in obj || 'byPriority' in obj) {
-    return formatSummary(obj);
+    return formatStats(obj);
   }
 
-  // Single entity with id
+  // Progress
+  if ('completed' in obj && 'total' in obj) {
+    return `${obj.completed}/${obj.total} completed (${obj.percentComplete || 0}%)`;
+  }
+
+  // Single entity
   if ('id' in obj || 'planId' in obj || 'taskId' in obj) {
     return formatEntity(obj);
   }
 
-  // Fallback to formatted key-value display
-  return formatKeyValue(obj);
+  // Generic object - one line per key
+  return Object.entries(obj)
+    .filter(([, v]) => v != null && v !== '')
+    .map(([k, v]) => `${k}: ${fmt(v)}`)
+    .join(' | ');
 }
 
-function formatWithMessage(obj: Record<string, ResultValue>): string {
-  const lines: string[] = [];
-  const message = obj.message as string;
-
-  lines.push(`${message}`);
-  lines.push('');
-
-  // Add other relevant fields
-  const skipFields = ['message'];
-  const entries = Object.entries(obj).filter(([key]) => !skipFields.includes(key));
-
-  if (entries.length > 0) {
-    for (const [key, value] of entries) {
-      if (value !== null && value !== undefined) {
-        lines.push(`  ${formatKey(key)}: ${formatValue(value)}`);
-      }
-    }
-  }
-
-  return lines.join('\n');
+function formatPlans(plans: Record<string, Val>[]): string {
+  if (plans.length === 0) return 'No plans';
+  return plans.map(p => `${p.id}: ${p.name} [${status(p.status)}]`).join('\n');
 }
 
-function formatPlansList(plans: Record<string, ResultValue>[], count?: number): string {
-  const lines: string[] = [];
-
-  lines.push(`Found ${count ?? plans.length} plan(s):`);
-  lines.push('');
-
-  for (const plan of plans) {
-    const status = formatStatus(plan.status as string);
-    lines.push(`  [${plan.id}] ${plan.name}`);
-    lines.push(`      Status: ${status}  |  Project: ${plan.projectPath || 'N/A'}`);
-    if (plan.createdAt) {
-      lines.push(`      Created: ${formatDate(plan.createdAt as string)}`);
-    }
-    lines.push('');
-  }
-
-  return lines.join('\n');
+function formatTasks(tasks: Record<string, Val>[]): string {
+  if (tasks.length === 0) return 'No tasks';
+  return tasks.map(t => {
+    const parts = [`${t.id}: ${t.title}`, status(t.status)];
+    if (t.priority && t.priority !== 'medium') parts.push(priority(t.priority as string));
+    if (t.dueDate) parts.push(`due ${shortDate(t.dueDate as string)}`);
+    return parts.join(' | ');
+  }).join('\n');
 }
 
-function formatTasksList(tasks: Record<string, ResultValue>[], context: Record<string, ResultValue>): string {
-  const lines: string[] = [];
-
-  const total = context.total ?? context.count ?? tasks.length;
-  lines.push(`Found ${total} task(s):`);
-  lines.push('');
-
-  for (const task of tasks) {
-    const status = formatStatus(task.status as string);
-    const priority = formatPriority(task.priority as string);
-    lines.push(`  [${task.id}] ${task.title}`);
-    lines.push(`      ${status}  |  ${priority}`);
-    if (task.dueDate) {
-      lines.push(`      Due: ${formatDate(task.dueDate as string)}`);
-    }
-    if (task.tags && Array.isArray(task.tags) && task.tags.length > 0) {
-      lines.push(`      Tags: ${(task.tags as string[]).join(', ')}`);
-    }
-    lines.push('');
-  }
-
-  return lines.join('\n');
+function formatComments(comments: Record<string, Val>[]): string {
+  if (comments.length === 0) return 'No comments';
+  return comments.map(c =>
+    `${shortDate(c.createdAt as string)} ${c.author || 'anon'}: ${c.content}`
+  ).join('\n');
 }
 
-function formatCommentsList(comments: Record<string, ResultValue>[]): string {
-  const lines: string[] = [];
-
-  lines.push(`${comments.length} comment(s):`);
-  lines.push('');
-
-  for (const comment of comments) {
-    const author = comment.author || 'Anonymous';
-    const date = formatDate(comment.createdAt as string);
-    lines.push(`  [${date}] ${author}:`);
-    lines.push(`    ${comment.content}`);
-    lines.push('');
-  }
-
-  return lines.join('\n');
+function formatTemplates(templates: Record<string, Val>[]): string {
+  return templates.map(t => `${t.id}: ${t.name}`).join('\n');
 }
 
-function formatTemplatesList(templates: Record<string, ResultValue>[]): string {
-  const lines: string[] = [];
-
-  lines.push(`Available templates (${templates.length}):`);
-  lines.push('');
-
-  for (const template of templates) {
-    lines.push(`  ${template.id}: ${template.name}`);
-    if (template.description) {
-      lines.push(`    ${template.description}`);
-    }
-    lines.push('');
+function formatCanStart(obj: Record<string, Val>): string {
+  if (obj.canStart) return 'Ready to start';
+  const pending = obj.pendingDependencies as Record<string, Val>[] | undefined;
+  if (pending?.length) {
+    return `Blocked by: ${pending.map(p => p.title || p.id).join(', ')}`;
   }
-
-  return lines.join('\n');
+  return 'Cannot start yet';
 }
 
-function formatDependencies(obj: Record<string, ResultValue>): string {
-  const lines: string[] = [];
-
-  if ('canStart' in obj) {
-    lines.push(obj.canStart ? 'Task can be started' : 'Task cannot be started yet');
-    lines.push('');
-  }
-
-  if ('dependsOn' in obj && Array.isArray(obj.dependsOn)) {
-    const deps = obj.dependsOn as Record<string, ResultValue>[];
-    if (deps.length > 0) {
-      lines.push(`Depends on (${deps.length}):`);
-      for (const dep of deps) {
-        lines.push(`  - [${dep.id}] ${dep.title || dep.taskId} (${formatStatus(dep.status as string)})`);
-      }
-      lines.push('');
-    }
-  }
-
-  if ('blocks' in obj && Array.isArray(obj.blocks)) {
-    const blocks = obj.blocks as Record<string, ResultValue>[];
-    if (blocks.length > 0) {
-      lines.push(`Blocks (${blocks.length}):`);
-      for (const block of blocks) {
-        lines.push(`  - [${block.id}] ${block.title || block.taskId}`);
-      }
-      lines.push('');
-    }
-  }
-
-  if ('pendingDependencies' in obj && Array.isArray(obj.pendingDependencies)) {
-    const pending = obj.pendingDependencies as Record<string, ResultValue>[];
-    if (pending.length > 0) {
-      lines.push(`Waiting on (${pending.length}):`);
-      for (const p of pending) {
-        lines.push(`  - [${p.id}] ${p.title} (${formatStatus(p.status as string)})`);
-      }
-    }
-  }
-
-  if (lines.length === 0) {
-    lines.push('No dependencies');
-  }
-
-  return lines.join('\n');
+function formatDeps(obj: Record<string, Val>): string {
+  const parts: string[] = [];
+  const deps = obj.dependsOn as Record<string, Val>[] | undefined;
+  const blocks = obj.blocks as Record<string, Val>[] | undefined;
+  if (deps?.length) parts.push(`depends on: ${deps.map(d => d.title || d.id).join(', ')}`);
+  if (blocks?.length) parts.push(`blocks: ${blocks.map(b => b.title || b.id).join(', ')}`);
+  return parts.join(' | ') || 'No dependencies';
 }
 
-function formatSummary(obj: Record<string, ResultValue>): string {
-  const lines: string[] = [];
-
-  if ('totalTasks' in obj) {
-    lines.push(`Total tasks: ${obj.totalTasks}`);
-    lines.push('');
+function formatStats(obj: Record<string, Val>): string {
+  const parts: string[] = [];
+  if (obj.totalTasks) parts.push(`${obj.totalTasks} tasks`);
+  const byStatus = obj.byStatus as Record<string, number> | undefined;
+  if (byStatus) {
+    const active = (byStatus.in_progress || 0) + (byStatus.review || 0);
+    const done = byStatus.completed || 0;
+    const blocked = byStatus.blocked || 0;
+    if (active) parts.push(`${active} active`);
+    if (done) parts.push(`${done} done`);
+    if (blocked) parts.push(`${blocked} blocked`);
   }
-
-  if ('byStatus' in obj && typeof obj.byStatus === 'object') {
-    lines.push('By Status:');
-    const byStatus = obj.byStatus as Record<string, number>;
-    for (const [status, count] of Object.entries(byStatus)) {
-      if (count > 0) {
-        lines.push(`  ${formatStatus(status)}: ${count}`);
-      }
-    }
-    lines.push('');
-  }
-
-  if ('byPriority' in obj && typeof obj.byPriority === 'object') {
-    lines.push('By Priority:');
-    const byPriority = obj.byPriority as Record<string, number>;
-    for (const [priority, count] of Object.entries(byPriority)) {
-      if (count > 0) {
-        lines.push(`  ${formatPriority(priority)}: ${count}`);
-      }
-    }
-  }
-
-  return lines.join('\n');
+  return parts.join(', ') || 'No stats';
 }
 
-function formatEntity(obj: Record<string, ResultValue>): string {
-  const lines: string[] = [];
-
-  // Header with ID and name/title
+function formatEntity(obj: Record<string, Val>): string {
   const id = obj.id || obj.planId || obj.taskId;
   const name = obj.name || obj.title;
+  const parts: string[] = [];
 
-  if (name) {
-    lines.push(`${name}`);
-    lines.push(`ID: ${id}`);
-  } else {
-    lines.push(`ID: ${id}`);
-  }
-  lines.push('');
+  if (name) parts.push(String(name));
+  if (id) parts.push(`(${id})`);
+  if (obj.status) parts.push(`[${status(obj.status)}]`);
+  if (obj.priority && obj.priority !== 'medium') parts.push(priority(obj.priority as string));
 
-  // Important fields first
-  const priorityFields = ['status', 'priority', 'projectPath', 'description'];
-  const skipFields = ['id', 'planId', 'taskId', 'name', 'title', 'message', ...priorityFields];
-
-  for (const field of priorityFields) {
-    if (field in obj && obj[field] !== null && obj[field] !== undefined && obj[field] !== '') {
-      let value = obj[field];
-      if (field === 'status') value = formatStatus(value as string);
-      if (field === 'priority') value = formatPriority(value as string);
-      lines.push(`${formatKey(field)}: ${value}`);
-    }
-  }
-
-  // Other fields
-  const otherFields = Object.entries(obj).filter(
-    ([key, value]) => !skipFields.includes(key) && value !== null && value !== undefined && value !== ''
-  );
-
-  if (otherFields.length > 0) {
-    lines.push('');
-    for (const [key, value] of otherFields) {
-      lines.push(`${formatKey(key)}: ${formatValue(value)}`);
-    }
-  }
-
-  return lines.join('\n');
+  return parts.join(' ') || String(id);
 }
 
-function formatKeyValue(obj: Record<string, ResultValue>): string {
-  const lines: string[] = [];
-
-  for (const [key, value] of Object.entries(obj)) {
-    if (value !== null && value !== undefined) {
-      lines.push(`${formatKey(key)}: ${formatValue(value)}`);
-    }
-  }
-
-  return lines.join('\n');
-}
-
-function formatKey(key: string): string {
-  // Convert camelCase to Title Case
-  return key
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, s => s.toUpperCase())
-    .trim();
-}
-
-function formatValue(value: ResultValue): string {
-  if (value === null || value === undefined) {
-    return 'N/A';
-  }
-
-  if (typeof value === 'boolean') {
-    return value ? 'Yes' : 'No';
-  }
-
-  if (Array.isArray(value)) {
-    if (value.length === 0) return 'None';
-    if (value.every(v => typeof v === 'string' || typeof v === 'number')) {
-      return value.join(', ');
-    }
-    return `[${value.length} items]`;
-  }
-
-  if (typeof value === 'object') {
-    return JSON.stringify(value);
-  }
-
-  return String(value);
-}
-
-function formatStatus(status: string): string {
-  const statusMap: Record<string, string> = {
-    'backlog': 'Backlog',
-    'ready': 'Ready',
-    'in_progress': 'In Progress',
-    'review': 'In Review',
-    'blocked': 'Blocked',
-    'completed': 'Completed',
-    'cancelled': 'Cancelled',
-    'draft': 'Draft',
-    'active': 'Active',
-    'archived': 'Archived'
+function status(s: Val): string {
+  const map: Record<string, string> = {
+    backlog: 'backlog', ready: 'ready', in_progress: 'active',
+    review: 'review', blocked: 'BLOCKED', completed: 'done',
+    cancelled: 'cancelled', draft: 'draft', active: 'active', archived: 'archived'
   };
-  return statusMap[status] || status;
+  return map[String(s)] || String(s);
 }
 
-function formatPriority(priority: string): string {
-  const priorityMap: Record<string, string> = {
-    'critical': 'Critical',
-    'high': 'High',
-    'medium': 'Medium',
-    'low': 'Low'
-  };
-  return priorityMap[priority] || priority;
+function priority(p: string): string {
+  const map: Record<string, string> = { critical: 'CRIT', high: 'HIGH', medium: '', low: 'low' };
+  return map[p] || p;
 }
 
-function formatDate(dateStr: string): string {
+function shortDate(d: string): string {
   try {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  } catch {
-    return dateStr;
-  }
+    const date = new Date(d);
+    const m = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${m}/${day}`;
+  } catch { return d; }
+}
+
+function fmt(v: Val): string {
+  if (v == null) return '';
+  if (typeof v === 'boolean') return v ? 'yes' : 'no';
+  if (Array.isArray(v)) return v.length ? v.join(', ') : 'none';
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
 }

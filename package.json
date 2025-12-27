@@ -1,6 +1,6 @@
 {
   "name": "longterm-planner-mcp",
-  "version": "0.2.12",
+  "version": "0.2.13",
   "description": "MCP server for long-term planning management and execution in Claude Code",
   "type": "module",
   "main": "dist/index.js",
